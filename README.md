@@ -2,7 +2,7 @@
 
 iConv is a versatile and user-friendly desktop application for all your media conversion and downloading needs. Built with Java Swing, it provides a modern, dark-themed interface to handle images, videos, and online content from popular platforms.
 
-![Screenshot](https://i.imgur.com/your-screenshot.png) <!-- It's recommended to add a screenshot of your application -->
+![Screenshot](iConv.png)
 
 ## Features
 
