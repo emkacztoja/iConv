@@ -45,8 +45,8 @@ iConv is a versatile and user-friendly desktop application for all your media co
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/iconv.git
-   cd iconv
+   git clone https://github.com/emkacztoja/iConv.git
+   cd iConv
    ```
 
 2. **Build the project using Maven**:

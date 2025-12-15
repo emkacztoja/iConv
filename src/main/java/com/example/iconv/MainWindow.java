@@ -96,11 +96,11 @@ public class MainWindow extends JFrame {
         
         // Reset Button (Left)
         JButton resetBtn = new JButton("Reset");
-        resetBtn.setToolTipText("Reset all settings and clear lists");
+        resetBtn.setToolTipText("Reset all settings to default");
         resetBtn.addActionListener(e -> resetApplication());
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        leftPanel.add(resetBtn);
-        topPanel.add(leftPanel, BorderLayout.WEST);
+        JPanel resetPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        resetPanel.add(resetBtn);
+        topPanel.add(resetPanel, BorderLayout.WEST);
 
         // Title (Center)
         JLabel titleLabel = new JLabel("iConv", SwingConstants.CENTER);
@@ -132,15 +132,6 @@ public class MainWindow extends JFrame {
         themePanel.add(themeToggleButton);
         topPanel.add(themePanel, BorderLayout.EAST);
         
-        // Try to balance left and right panels for better centering
-        Dimension d1 = leftPanel.getPreferredSize();
-        Dimension d2 = themePanel.getPreferredSize();
-        int w = Math.max(d1.width, d2.width);
-        int h = Math.max(d1.height, d2.height);
-        Dimension commonSize = new Dimension(w, h);
-        leftPanel.setPreferredSize(commonSize);
-        themePanel.setPreferredSize(commonSize);
-
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
 
@@ -170,43 +161,38 @@ public class MainWindow extends JFrame {
 
     private void resetApplication() {
         // Clear lists
-        imageConversionListModel.clear();
-        videoConversionListModel.clear();
-        audioConversionListModel.clear();
+        if (imageConversionListModel != null) imageConversionListModel.clear();
+        if (videoConversionListModel != null) videoConversionListModel.clear();
+        if (audioConversionListModel != null) audioConversionListModel.clear();
 
-        // Clear log
-        logArea.setText("");
-
-        // Reset output directory
+        // Reset Output Directory
         setDefaultOutputDirectory();
 
-        // Reset Image Converter inputs
-        if (imageFormatBox.getItemCount() > 0) {
-             for (int i=0; i<imageFormatBox.getItemCount(); i++) {
-                 if ("png".equals(imageFormatBox.getItemAt(i))) {
-                     imageFormatBox.setSelectedIndex(i);
-                     break;
-                 }
-             }
+        // Reset Formats
+        if (imageFormatBox != null && imageFormatBox.getItemCount() > 0) imageFormatBox.setSelectedItem("png");
+        if (videoFormatBox != null && videoFormatBox.getItemCount() > 0) videoFormatBox.setSelectedIndex(0);
+        if (audioFormatBox != null && audioFormatBox.getItemCount() > 0) audioFormatBox.setSelectedIndex(0);
+        if (qualityBox != null && qualityBox.getItemCount() > 0) qualityBox.setSelectedIndex(0);
+
+        // Reset Inputs
+        if (resizeWidthSpinner != null) resizeWidthSpinner.setValue(0);
+        if (resizeHeightSpinner != null) resizeHeightSpinner.setValue(0);
+        if (startTimeField != null) startTimeField.setText("00:00:00");
+        if (endTimeField != null) endTimeField.setText("");
+        if (urlField != null) urlField.setText("");
+        
+        // Reset Checkboxes
+        if (createGifCheckbox != null) createGifCheckbox.setSelected(false);
+        if (audioOnlyCheckbox != null) audioOnlyCheckbox.setSelected(false);
+
+        // Clear Log
+        if (logArea != null) logArea.setText("");
+        
+        // Reset Progress
+        if (downloadProgressBar != null) {
+            downloadProgressBar.setValue(0);
+            downloadProgressBar.setString(null);
         }
-        resizeWidthSpinner.setValue(0);
-        resizeHeightSpinner.setValue(0);
-
-        // Reset Video Converter inputs
-        if (videoFormatBox.getItemCount() > 0) videoFormatBox.setSelectedIndex(0);
-        startTimeField.setText("00:00:00");
-        endTimeField.setText("");
-        createGifCheckbox.setSelected(false);
-
-        // Reset Audio Converter inputs
-        if (audioFormatBox.getItemCount() > 0) audioFormatBox.setSelectedIndex(0);
-
-        // Reset Downloader inputs
-        urlField.setText("");
-        if (qualityBox.getItemCount() > 0) qualityBox.setSelectedIndex(0);
-        audioOnlyCheckbox.setSelected(false);
-        downloadProgressBar.setValue(0);
-        downloadProgressBar.setString(null);
 
         log("Application reset to defaults.");
     }
