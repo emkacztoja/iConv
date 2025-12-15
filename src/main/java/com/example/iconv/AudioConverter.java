@@ -8,9 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class VideoConverter {
+public class AudioConverter {
 
-    public void convert(File inputFile, String outputFormat, File outputDir, String startTime, String endTime, boolean createGif, Consumer<String> onProgress) throws IOException, InterruptedException {
+    public void convert(File inputFile, String outputFormat, File outputDir, Consumer<String> onProgress) throws IOException, InterruptedException {
         if (!inputFile.exists()) {
             throw new IOException("Input file does not exist: " + inputFile.getAbsolutePath());
         }
@@ -25,34 +25,19 @@ public class VideoConverter {
         String fileName = inputFile.getName();
         int dotIndex = fileName.lastIndexOf('.');
         String nameWithoutExtension = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
-        File outputFile = new File(outputDir, nameWithoutExtension + "." + (createGif ? "gif" : outputFormat));
+        File outputFile = new File(outputDir, nameWithoutExtension + "." + outputFormat);
 
         List<String> command = new ArrayList<>();
         command.add(ffmpegExecutable.getAbsolutePath());
         command.add("-i");
         command.add(inputFile.getAbsolutePath());
         command.add("-y"); // Overwrite output file if it exists
-
-        if (startTime != null && !startTime.isEmpty()) {
-            command.add("-ss");
-            command.add(startTime);
-        }
-        if (endTime != null && !endTime.isEmpty()) {
-            command.add("-to");
-            command.add(endTime);
-        }
-
-        if (createGif) {
-            command.add("-vf");
-            command.add("fps=10,scale=320:-1:flags=lanczos");
-        }
-
         command.add(outputFile.getAbsolutePath());
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         processBuilder.redirectErrorStream(true);
 
-        onProgress.accept("Starting conversion for: " + inputFile.getName());
+        onProgress.accept("Starting audio conversion for: " + inputFile.getName());
         onProgress.accept("Executing command: " + String.join(" ", command));
 
         Process process = processBuilder.start();
@@ -67,9 +52,9 @@ public class VideoConverter {
         int exitCode = process.waitFor();
 
         if (exitCode == 0) {
-            onProgress.accept("Conversion finished successfully!");
+            onProgress.accept("Audio conversion finished successfully!");
         } else {
-            onProgress.accept("Conversion failed with exit code: " + exitCode);
+            onProgress.accept("Audio conversion failed with exit code: " + exitCode);
         }
     }
 }

@@ -14,7 +14,7 @@ public class ImageConverter {
     // Formats that do not support transparency
     private static final Set<String> FORMATS_WITHOUT_ALPHA = new HashSet<>(Arrays.asList("jpg", "jpeg", "bmp"));
 
-    public void convert(File inputFile, String outputFormat, File outputDir) throws IOException {
+    public void convert(File inputFile, String outputFormat, File outputDir, int resizeWidth, int resizeHeight) throws IOException {
         if (!inputFile.exists()) {
             throw new IOException("Input file does not exist: " + inputFile.getAbsolutePath());
         }
@@ -28,6 +28,14 @@ public class ImageConverter {
         BufferedImage inputImage = ImageIO.read(inputFile);
         if (inputImage == null) {
             throw new IOException("Could not read input image: " + inputFile.getAbsolutePath());
+        }
+
+        // Resize the image if dimensions are provided
+        if (resizeWidth > 0 && resizeHeight > 0) {
+            Image resultingImage = inputImage.getScaledInstance(resizeWidth, resizeHeight, Image.SCALE_SMOOTH);
+            BufferedImage outputImage = new BufferedImage(resizeWidth, resizeHeight, inputImage.getType());
+            outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
+            inputImage = outputImage;
         }
 
         BufferedImage finalImage = inputImage;

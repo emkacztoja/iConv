@@ -1,6 +1,7 @@
 package com.example.iconv;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -57,32 +58,96 @@ public class MainWindow extends JFrame {
     private DefaultListModel<FileItem> imageConversionListModel;
     private JList<FileItem> videoConversionList;
     private DefaultListModel<FileItem> videoConversionListModel;
+    private JList<FileItem> audioConversionList;
+    private DefaultListModel<FileItem> audioConversionListModel;
     private JTextField outputDirField;
     private JComboBox<String> imageFormatBox;
     private JComboBox<String> videoFormatBox;
+    private JComboBox<String> audioFormatBox;
     private JTextArea logArea;
     private JTextField urlField;
     private JCheckBox audioOnlyCheckbox;
     private JComboBox<String> qualityBox;
     private JProgressBar downloadProgressBar;
     private static final Pattern PROGRESS_PATTERN = Pattern.compile("Download progress: (\\d+\\.\\d+)%.*");
+    private JSpinner resizeWidthSpinner;
+    private JSpinner resizeHeightSpinner;
+    private JTextField startTimeField;
+    private JTextField endTimeField;
+    private JCheckBox createGifCheckbox;
+    private JCheckBox watermarkCheckbox;
+    private JTextField watermarkTextField;
 
 
     public MainWindow() {
         // Set up the look and feel from Main.java
-        setTitle("Iconv - Media Converter");
+        setTitle("iConv - The Ultimate Media Converter");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600);
+        setSize(900, 700);
         setLocationRelativeTo(null);
 
         // Main content panel
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         add(mainPanel, BorderLayout.CENTER);
+        
+        // Top panel for title, reset button, and theme switcher
+        JPanel topPanel = new JPanel(new BorderLayout());
+        
+        // Reset Button (Left)
+        JButton resetBtn = new JButton("Reset");
+        resetBtn.setToolTipText("Reset all settings and clear lists");
+        resetBtn.addActionListener(e -> resetApplication());
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        leftPanel.add(resetBtn);
+        topPanel.add(leftPanel, BorderLayout.WEST);
+
+        // Title (Center)
+        JLabel titleLabel = new JLabel("iConv", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+        topPanel.add(titleLabel, BorderLayout.CENTER);
+
+        // Theme Switcher (Right)
+        JToggleButton themeToggleButton = new JToggleButton("Light");
+        themeToggleButton.setToolTipText("Switch between Light and Dark themes");
+        themeToggleButton.addActionListener(e -> {
+            if (themeToggleButton.isSelected()) {
+                try {
+                    UIManager.setLookAndFeel(new FlatLightLaf());
+                    themeToggleButton.setText("Dark");
+                } catch (UnsupportedLookAndFeelException ex) {
+                    ex.printStackTrace();
+                }
+            } else {
+                try {
+                    UIManager.setLookAndFeel(new FlatDarkLaf());
+                    themeToggleButton.setText("Light");
+                } catch (UnsupportedLookAndFeelException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            SwingUtilities.updateComponentTreeUI(this);
+        });
+        JPanel themePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        themePanel.add(themeToggleButton);
+        topPanel.add(themePanel, BorderLayout.EAST);
+        
+        // Try to balance left and right panels for better centering
+        Dimension d1 = leftPanel.getPreferredSize();
+        Dimension d2 = themePanel.getPreferredSize();
+        int w = Math.max(d1.width, d2.width);
+        int h = Math.max(d1.height, d2.height);
+        Dimension commonSize = new Dimension(w, h);
+        leftPanel.setPreferredSize(commonSize);
+        themePanel.setPreferredSize(commonSize);
+
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+
 
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.addTab("Image Converter", createImagePanel());
         tabbedPane.addTab("Video Converter", createVideoPanel());
+        tabbedPane.addTab("Audio Converter", createAudioPanel());
         tabbedPane.addTab("Downloader", createDownloaderPanel());
         mainPanel.add(tabbedPane, BorderLayout.CENTER);
 
@@ -101,6 +166,49 @@ public class MainWindow extends JFrame {
 
         // Set default output directory
         setDefaultOutputDirectory();
+    }
+
+    private void resetApplication() {
+        // Clear lists
+        imageConversionListModel.clear();
+        videoConversionListModel.clear();
+        audioConversionListModel.clear();
+
+        // Clear log
+        logArea.setText("");
+
+        // Reset output directory
+        setDefaultOutputDirectory();
+
+        // Reset Image Converter inputs
+        if (imageFormatBox.getItemCount() > 0) {
+             for (int i=0; i<imageFormatBox.getItemCount(); i++) {
+                 if ("png".equals(imageFormatBox.getItemAt(i))) {
+                     imageFormatBox.setSelectedIndex(i);
+                     break;
+                 }
+             }
+        }
+        resizeWidthSpinner.setValue(0);
+        resizeHeightSpinner.setValue(0);
+
+        // Reset Video Converter inputs
+        if (videoFormatBox.getItemCount() > 0) videoFormatBox.setSelectedIndex(0);
+        startTimeField.setText("00:00:00");
+        endTimeField.setText("");
+        createGifCheckbox.setSelected(false);
+
+        // Reset Audio Converter inputs
+        if (audioFormatBox.getItemCount() > 0) audioFormatBox.setSelectedIndex(0);
+
+        // Reset Downloader inputs
+        urlField.setText("");
+        if (qualityBox.getItemCount() > 0) qualityBox.setSelectedIndex(0);
+        audioOnlyCheckbox.setSelected(false);
+        downloadProgressBar.setValue(0);
+        downloadProgressBar.setString(null);
+
+        log("Application reset to defaults.");
     }
 
     private JPanel createImagePanel() {
@@ -124,9 +232,9 @@ public class MainWindow extends JFrame {
         // Add/Remove Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton addFilesBtn = new JButton("Add Files...");
-        addFilesBtn.addActionListener(e -> addFiles(imageConversionListModel, true));
+        addFilesBtn.addActionListener(e -> addFiles(imageConversionListModel, "image"));
         JButton addDirBtn = new JButton("Add Folder...");
-        addDirBtn.addActionListener(e -> addDirectory(imageConversionListModel, true));
+        addDirBtn.addActionListener(e -> addDirectory(imageConversionListModel, "image"));
         JButton clearBtn = new JButton("Clear List");
         clearBtn.addActionListener(e -> imageConversionListModel.clear());
         buttonPanel.add(addFilesBtn);
@@ -153,8 +261,19 @@ public class MainWindow extends JFrame {
         gbc.gridx = 1; gbc.gridwidth = 2;
         controlPanel.add(imageFormatBox, gbc);
 
-        // Output Directory
+        // Resize options
         gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1;
+        controlPanel.add(new JLabel("Resize (Width x Height):"), gbc);
+        resizeWidthSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 9999, 1));
+        resizeHeightSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 9999, 1));
+        JPanel resizePanel = new JPanel(new GridLayout(1, 2, 5, 0));
+        resizePanel.add(resizeWidthSpinner);
+        resizePanel.add(resizeHeightSpinner);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        controlPanel.add(resizePanel, gbc);
+
+        // Output Directory
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 1;
         controlPanel.add(new JLabel("Output Directory:"), gbc);
 
         outputDirField = new JTextField(25);
@@ -176,7 +295,7 @@ public class MainWindow extends JFrame {
         convertBtn.addActionListener(this::convertImages);
         convertPanel.add(convertBtn);
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 4;
         gbc.gridwidth = 3;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.NONE;
@@ -206,11 +325,87 @@ public class MainWindow extends JFrame {
         // Add/Remove Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton addFilesBtn = new JButton("Add Files...");
-        addFilesBtn.addActionListener(e -> addFiles(videoConversionListModel, false));
+        addFilesBtn.addActionListener(e -> addFiles(videoConversionListModel, "video"));
         JButton addDirBtn = new JButton("Add Folder...");
-        addDirBtn.addActionListener(e -> addDirectory(videoConversionListModel, false));
+        addDirBtn.addActionListener(e -> addDirectory(videoConversionListModel, "video"));
         JButton clearBtn = new JButton("Clear List");
         clearBtn.addActionListener(e -> videoConversionListModel.clear());
+        buttonPanel.add(addFilesBtn);
+        buttonPanel.add(addDirBtn);
+        buttonPanel.add(clearBtn);
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 3;
+        controlPanel.add(buttonPanel, gbc);
+
+        // Output Format
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1;
+        controlPanel.add(new JLabel("Output Format:"), gbc);
+
+        String[] videoFormats = {"mp4", "mkv", "mov", "avi", "mp3"};
+        videoFormatBox = new JComboBox<>(videoFormats);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        controlPanel.add(videoFormatBox, gbc);
+
+        // Trimming options
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1;
+        controlPanel.add(new JLabel("Trim (Start - End):"), gbc);
+        startTimeField = new JTextField("00:00:00");
+        endTimeField = new JTextField();
+        JPanel trimPanel = new JPanel(new GridLayout(1, 2, 5, 0));
+        trimPanel.add(startTimeField);
+        trimPanel.add(endTimeField);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        controlPanel.add(trimPanel, gbc);
+
+        // GIF creation
+        createGifCheckbox = new JCheckBox("Create GIF");
+        gbc.gridx = 1; gbc.gridy = 3; gbc.gridwidth = 2;
+        controlPanel.add(createGifCheckbox, gbc);
+        
+        panel.add(controlPanel, BorderLayout.SOUTH);
+
+        // Convert Button
+        JPanel convertPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        JButton convertBtn = new JButton("Convert All Videos");
+        convertBtn.setFont(new Font("SansSerif", Font.BOLD, 18));
+        convertBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        convertBtn.addActionListener(this::convertVideos);
+        convertPanel.add(convertBtn);
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 3;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        controlPanel.add(convertPanel, gbc);
+
+        return panel;
+    }
+
+    private JPanel createAudioPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        // File List Panel
+        audioConversionListModel = new DefaultListModel<>();
+        audioConversionList = new JList<>(audioConversionListModel);
+        audioConversionList.setCellRenderer(new FileListCellRenderer());
+        JScrollPane fileListScroll = new JScrollPane(audioConversionList);
+        fileListScroll.setBorder(BorderFactory.createTitledBorder("Audio to Convert (Drag & Drop here)"));
+        panel.add(fileListScroll, BorderLayout.CENTER);
+
+        // Control panel
+        JPanel controlPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Add/Remove Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton addFilesBtn = new JButton("Add Files...");
+        addFilesBtn.addActionListener(e -> addFiles(audioConversionListModel, "audio"));
+        JButton addDirBtn = new JButton("Add Folder...");
+        addDirBtn.addActionListener(e -> addDirectory(audioConversionListModel, "audio"));
+        JButton clearBtn = new JButton("Clear List");
+        clearBtn.addActionListener(e -> audioConversionListModel.clear());
         buttonPanel.add(addFilesBtn);
         buttonPanel.add(addDirBtn);
         buttonPanel.add(clearBtn);
@@ -221,19 +416,19 @@ public class MainWindow extends JFrame {
         gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1;
         controlPanel.add(new JLabel("Output Format:"), gbc);
 
-        String[] videoFormats = {"mp4", "mkv", "mov", "avi", "mp3"};
-        videoFormatBox = new JComboBox<>(videoFormats);
+        String[] audioFormats = {"mp3", "wav", "aac", "flac"};
+        audioFormatBox = new JComboBox<>(audioFormats);
         gbc.gridx = 1;
-        controlPanel.add(videoFormatBox, gbc);
+        controlPanel.add(audioFormatBox, gbc);
         
         panel.add(controlPanel, BorderLayout.SOUTH);
 
         // Convert Button
         JPanel convertPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        JButton convertBtn = new JButton("Convert All Videos");
+        JButton convertBtn = new JButton("Convert All Audio");
         convertBtn.setFont(new Font("SansSerif", Font.BOLD, 18));
         convertBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        convertBtn.addActionListener(this::convertVideos);
+        convertBtn.addActionListener(this::convertAudio);
         convertPanel.add(convertBtn);
         gbc.gridx = 0;
         gbc.gridy = 3;
@@ -296,7 +491,7 @@ public class MainWindow extends JFrame {
         return panel;
     }
 
-    private void addFiles(DefaultListModel<FileItem> model, boolean isImage) {
+    private void addFiles(DefaultListModel<FileItem> model, String type) {
         JFileChooser chooser = new JFileChooser();
         chooser.setMultiSelectionEnabled(true);
         chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -311,25 +506,36 @@ public class MainWindow extends JFrame {
         }
     }
 
-    private void addDirectory(DefaultListModel<FileItem> model, boolean isImage) {
+    private void addDirectory(DefaultListModel<FileItem> model, String type) {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int result = chooser.showOpenDialog(this);
         if (result == JFileChooser.APPROVE_OPTION) {
             File dir = chooser.getSelectedFile();
-            addFilesInDirectory(dir, dir.getParentFile(), model, isImage);
+            addFilesInDirectory(dir, dir.getParentFile(), model, type);
         }
     }
 
-    private void addFilesInDirectory(File dir, File baseDir, DefaultListModel<FileItem> model, boolean isImage) {
+    private void addFilesInDirectory(File dir, File baseDir, DefaultListModel<FileItem> model, String type) {
         File[] files = dir.listFiles();
         if (files != null) {
             log("Scanning folder: " + dir.getName());
             for (File file : files) {
                 if (file.isDirectory()) {
-                    addFilesInDirectory(file, baseDir, model, isImage); // Pass the original baseDir
+                    addFilesInDirectory(file, baseDir, model, type); // Pass the original baseDir
                 } else {
-                    boolean addFile = isImage ? isImageFile(file) : isVideoFile(file);
+                    boolean addFile = false;
+                    switch (type) {
+                        case "image":
+                            addFile = isImageFile(file);
+                            break;
+                        case "video":
+                            addFile = isVideoFile(file);
+                            break;
+                        case "audio":
+                            addFile = isAudioFile(file);
+                            break;
+                    }
                     if (addFile) {
                         FileItem item = new FileItem(file, baseDir);
                         if (!model.contains(item)) {
@@ -349,6 +555,11 @@ public class MainWindow extends JFrame {
     private boolean isVideoFile(File file) {
         String name = file.getName().toLowerCase();
         return name.endsWith(".mp4") || name.endsWith(".mkv") || name.endsWith(".mov") || name.endsWith(".avi") || name.endsWith(".flv") || name.endsWith(".wmv");
+    }
+
+    private boolean isAudioFile(File file) {
+        String name = file.getName().toLowerCase();
+        return name.endsWith(".mp3") || name.endsWith(".wav") || name.endsWith(".aac") || name.endsWith(".flac") || name.endsWith(".ogg");
     }
 
     private void setDefaultOutputDirectory() {
@@ -379,8 +590,9 @@ public class MainWindow extends JFrame {
                     log("Processing " + files.size() + " dropped items...");
                     for (File file : files) {
                         if (file.isDirectory()) {
-                            addFilesInDirectory(file, file.getParentFile(), imageConversionListModel, true);
-                            addFilesInDirectory(file, file.getParentFile(), videoConversionListModel, false);
+                            addFilesInDirectory(file, file.getParentFile(), imageConversionListModel, "image");
+                            addFilesInDirectory(file, file.getParentFile(), videoConversionListModel, "video");
+                            addFilesInDirectory(file, file.getParentFile(), audioConversionListModel, "audio");
                         } else {
                             if (isImageFile(file)) {
                                 FileItem item = new FileItem(file, file.getParentFile());
@@ -391,6 +603,11 @@ public class MainWindow extends JFrame {
                                 FileItem item = new FileItem(file, file.getParentFile());
                                 if (!videoConversionListModel.contains(item)) {
                                     videoConversionListModel.addElement(item);
+                                }
+                            } else if (isAudioFile(file)) {
+                                FileItem item = new FileItem(file, file.getParentFile());
+                                if (!audioConversionListModel.contains(item)) {
+                                    audioConversionListModel.addElement(item);
                                 }
                             }
                         }
@@ -425,6 +642,8 @@ public class MainWindow extends JFrame {
     private void convertImages(ActionEvent e) {
         String outputDirPath = outputDirField.getText();
         String format = (String) imageFormatBox.getSelectedItem();
+        int resizeWidth = (int) resizeWidthSpinner.getValue();
+        int resizeHeight = (int) resizeHeightSpinner.getValue();
 
         if (imageConversionListModel.isEmpty()) {
             log("Please add images to the list before converting.");
@@ -453,7 +672,7 @@ public class MainWindow extends JFrame {
                     lastOutputDir = targetDir;
 
                     log("Converting " + item.file.getName() + " to " + format + "...");
-                    converter.convert(item.file, format, targetDir);
+                    converter.convert(item.file, format, targetDir, resizeWidth, resizeHeight);
                     successCount++;
                 } catch (IOException ex) {
                     log("Error converting " + item.file.getName() + ": " + ex.getMessage());
@@ -474,6 +693,9 @@ public class MainWindow extends JFrame {
     private void convertVideos(ActionEvent e) {
         String outputDirPath = outputDirField.getText();
         String format = (String) videoFormatBox.getSelectedItem();
+        String startTime = startTimeField.getText();
+        String endTime = endTimeField.getText();
+        boolean createGif = createGifCheckbox.isSelected();
 
         if (videoConversionListModel.isEmpty()) {
             log("Please add videos to the list before converting.");
@@ -501,7 +723,7 @@ public class MainWindow extends JFrame {
                     File targetDir = (parentPath != null) ? new File(outputDir, parentPath.toString()) : outputDir;
                     lastOutputDir = targetDir;
 
-                    converter.convert(item.file, format, targetDir, this::log);
+                    converter.convert(item.file, format, targetDir, startTime, endTime, createGif, this::log);
                     successCount++;
                 } catch (IOException | InterruptedException ex) {
                     log("Error converting " + item.file.getName() + ": " + ex.getMessage());
@@ -512,6 +734,54 @@ public class MainWindow extends JFrame {
             final File finalOutputDir = lastOutputDir;
             SwingUtilities.invokeLater(() -> {
                 log("Video conversion finished. " + finalSuccessCount + "/" + itemsToConvert.size() + " files converted successfully.");
+                if (finalSuccessCount > 0 && finalOutputDir != null) {
+                    openOutputDirectory(finalOutputDir);
+                }
+            });
+        }).start();
+    }
+
+    private void convertAudio(ActionEvent e) {
+        String outputDirPath = outputDirField.getText();
+        String format = (String) audioFormatBox.getSelectedItem();
+
+        if (audioConversionListModel.isEmpty()) {
+            log("Please add audio files to the list before converting.");
+            return;
+        }
+        if (outputDirPath.isEmpty()) {
+            log("Please select an output directory.");
+            return;
+        }
+
+        File outputDir = new File(outputDirPath);
+        List<FileItem> itemsToConvert = new ArrayList<>();
+        for (int i = 0; i < audioConversionListModel.getSize(); i++) {
+            itemsToConvert.add(audioConversionListModel.getElementAt(i));
+        }
+
+        AudioConverter converter = new AudioConverter();
+        new Thread(() -> {
+            int successCount = 0;
+            File lastOutputDir = null;
+            for (FileItem item : itemsToConvert) {
+                try {
+                    Path relativePath = item.baseDir.toPath().relativize(item.file.toPath());
+                    Path parentPath = relativePath.getParent();
+                    File targetDir = (parentPath != null) ? new File(outputDir, parentPath.toString()) : outputDir;
+                    lastOutputDir = targetDir;
+
+                    converter.convert(item.file, format, targetDir, this::log);
+                    successCount++;
+                } catch (IOException | InterruptedException ex) {
+                    log("Error converting " + item.file.getName() + ": " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+            }
+            final int finalSuccessCount = successCount;
+            final File finalOutputDir = lastOutputDir;
+            SwingUtilities.invokeLater(() -> {
+                log("Audio conversion finished. " + finalSuccessCount + "/" + itemsToConvert.size() + " files converted successfully.");
                 if (finalSuccessCount > 0 && finalOutputDir != null) {
                     openOutputDirectory(finalOutputDir);
                 }
