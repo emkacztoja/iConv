@@ -45,6 +45,22 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.panteleyev</groupId>
+                <artifactId>jpackage-maven-plugin</artifactId>
+                <version>1.4.0</version>
+                <configuration>
+                    <name>iConv</name>
+                    <appVersion>1.0.0</appVersion>
+                    <vendor>iConv</vendor>
+                    <destination>dist</destination>
+                    <input>target</input>
+                    <mainClass>com.example.iconv.Main</mainClass>
+                    <mainJar>iconv-1.0-SNAPSHOT.jar</mainJar>
+                    <type>APP_IMAGE</type>
+                    <winConsole>true</winConsole>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

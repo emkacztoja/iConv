@@ -63,3 +63,6 @@ local.properties
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Dist
+dist/
